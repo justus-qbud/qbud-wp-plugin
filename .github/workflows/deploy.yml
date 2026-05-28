@@ -1,0 +1,57 @@
+name: Build and Deploy Plugin to CDN
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build plugin zip
+        run: |
+          mkdir -p dist build/qbud
+          # Copy plugin files into a folder named after the install slug
+          # so the zip extracts to wp-content/plugins/qbud/.
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='assets' \
+            --exclude='dist' \
+            --exclude='build' \
+            --exclude='qbud.zip' \
+            ./ build/qbud/
+          (cd build && zip -r ../dist/qbud.zip qbud)
+          ls -la dist/
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Copy zip to server
+        run: |
+          scp ./dist/qbud.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}
+
+      - name: Purge Cloudflare cache for plugin zip
+        run: |
+          url="https://app.qbud.ai/cdn/qbud.zip"
+          payload=$(jq -nc --arg u "$url" '{files: [$u]}')
+          response=$(curl -sS -w "\n%{http_code}" -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data "$payload")
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+          echo "$body"
+          if [ "$status" != "200" ]; then
+            echo "Cloudflare purge failed with HTTP $status"
+            exit 1
+          fi
