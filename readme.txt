@@ -1,4 +1,4 @@
-=== qBud ===
+=== qBud Assistant ===
 Contributors: qBud
 Tags: ai, chatbot, qbud, assistant, customer support
 Requires at least: 5.2
@@ -12,7 +12,7 @@ Easily integrate your qBud AI assistant into your WordPress website.
 
 == Description ==
 
-The qBud AI Assistant plugin allows you to quickly add your qBud AI assistant to your WordPress website. Simply enter your Assistant ID, and the plugin will automatically add your AI assistant to every page of your site.
+The qBud Assistant plugin allows you to quickly add your qBud AI assistant to your WordPress website. Simply enter your Assistant ID, and the plugin will automatically add your AI assistant to every page of your site.
 
 Features:
 * Simple one-field configuration
@@ -22,7 +22,7 @@ Features:
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/qbud-assistant` directory, or install the plugin through the WordPress plugins screen directly.
+1. Upload the plugin files to the `/wp-content/plugins/qbud` directory, or install the plugin through the WordPress plugins screen directly.
 2. Activate the plugin through the 'Plugins' screen in WordPress
 3. Go to Settings -> qBud Assistant to configure the plugin
 4. Enter your Assistant ID from your qBud dashboard
@@ -31,11 +31,11 @@ Features:
 
 = Where do I find my Assistant ID? =
 
-You can find your Assistant ID in your qBud dashboard. Log in to your account at qbud.ai and navigate to your assistant settings.
+You can find your Assistant ID in your qBud dashboard. Log in to your account at app.qbud.ai and navigate to your assistant settings.
 
 = Is a qBud account required? =
 
-Yes, you need a qBud account and an AI assistant configured to use this plugin. Visit qbud.ai to sign up and create your assistant.
+Yes, you need a qBud account and an AI assistant configured to use this plugin. Visit app.qbud.ai to sign up and create your assistant.
 
 = Will this work on all my pages? =
 
@@ -49,4 +49,4 @@ Yes, once configured, your AI assistant will be available on all pages of your W
 == Upgrade Notice ==
 
 = 1.0.0 =
-Initial release of the qBud AI Assistant WordPress plugin.
+Initial release of the qBud Assistant WordPress plugin.
