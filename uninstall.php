@@ -4,7 +4,19 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
-// Delete the option from the database
-delete_option('qbud_assistant_id');
+// Delete options from the database
+$qbud_options = array(
+    'qbud_assistant_id',
+    'qbud_color',
+    'qbud_fullscreen',
+    'qbud_w',
+    'qbud_extension',
+    'qbud_style',
+    'qbud_rating',
+    'qbud_client_type',
+);
+foreach ($qbud_options as $qbud_option) {
+    delete_option($qbud_option);
+}
 
 ?>
