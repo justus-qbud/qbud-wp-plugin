@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "download_url": "https://app.qbud.ai/cdn/qbud-wp.zip",
+  "homepage": "https://qbud.ai",
+  "requires": "5.2",
+  "requires_php": "7.2",
+  "tested": "6.5",
+  "last_updated": "2026-06-19",
+  "sections": {
+    "description": "Easily integrate your qBud AI assistant into WordPress by specifying your assistant ID.",
+    "changelog": "<h4>1.0.0</h4><ul><li>Initial release.</li></ul>"
+  }
+}

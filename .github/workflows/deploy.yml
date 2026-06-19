@@ -24,9 +24,10 @@ jobs:
             --exclude='assets' \
             --exclude='dist' \
             --exclude='build' \
-            --exclude='qbud.zip' \
+            --exclude='qbud-wp.zip' \
+            --exclude='qbud.json' \
             ./ build/qbud/
-          (cd build && zip -r ../dist/qbud.zip qbud)
+          (cd build && zip -r ../dist/qbud-wp.zip qbud)
           ls -la dist/
 
       - name: Install SSH key
@@ -35,14 +36,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
-      - name: Copy zip to server
+      - name: Copy zip and manifest to server
         run: |
-          scp ./dist/qbud.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}
+          scp ./dist/qbud-wp.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}/qbud-wp.zip
+          scp ./qbud.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}/qbud.json
 
-      - name: Purge Cloudflare cache for plugin zip
+      - name: Purge Cloudflare cache for plugin zip and manifest
         run: |
-          url="https://app.qbud.ai/cdn/qbud.zip"
-          payload=$(jq -nc --arg u "$url" '{files: [$u]}')
+          payload=$(jq -nc '{files: ["https://app.qbud.ai/cdn/qbud-wp.zip", "https://app.qbud.ai/cdn/qbud.json"]}')
           response=$(curl -sS -w "\n%{http_code}" -X POST \
             "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \

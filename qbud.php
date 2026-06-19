@@ -16,6 +16,9 @@ if (!defined('ABSPATH')) {
     die;
 }
 
+define('QBUD_VERSION', '1.0.0');
+define('QBUD_UPDATE_MANIFEST', 'https://app.qbud.ai/cdn/qbud.json');
+
 // Optional data-* attributes the user can configure. Value is the input type.
 function qbud_option_fields() {
     return array(
@@ -149,7 +152,7 @@ function qbud_enqueue_scripts() {
         'qbud-script',
         'https://app.qbud.ai/cdn/qbud.js',
         array(),
-        '1.0.0',
+        QBUD_VERSION,
         true
     );
     wp_enqueue_script('qbud-script');
@@ -179,3 +182,118 @@ function qbud_filter_script_tag($tag, $handle) {
     return preg_replace('/<script\s/', '<script ' . $attrs . ' ', $tag, 1);
 }
 add_filter('script_loader_tag', 'qbud_filter_script_tag', 10, 2);
+
+/**
+ * Self-hosted update support.
+ *
+ * The plugin is distributed from our own CDN (not wp.org), so we tell
+ * WordPress where to look by fetching a small JSON manifest that advertises
+ * the latest version and the download URL for the zip.
+ */
+
+// Fetch and cache the remote manifest. Returns an stdClass or null on failure.
+function qbud_get_remote_manifest() {
+    $cached = get_transient('qbud_update_manifest');
+    if (false !== $cached) {
+        return $cached ? $cached : null;
+    }
+
+    $response = wp_remote_get(QBUD_UPDATE_MANIFEST, array('timeout' => 10));
+    if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
+        // Cache the failure briefly so we don't hammer the CDN on every page load.
+        set_transient('qbud_update_manifest', '', HOUR_IN_SECONDS);
+        return null;
+    }
+
+    $manifest = json_decode(wp_remote_retrieve_body($response));
+    if (!is_object($manifest) || empty($manifest->version)) {
+        set_transient('qbud_update_manifest', '', HOUR_IN_SECONDS);
+        return null;
+    }
+
+    set_transient('qbud_update_manifest', $manifest, 6 * HOUR_IN_SECONDS);
+    return $manifest;
+}
+
+// Inject our update into the list WordPress checks against.
+function qbud_check_for_update($transient) {
+    if (empty($transient->checked)) {
+        return $transient;
+    }
+
+    $manifest = qbud_get_remote_manifest();
+    if (!$manifest) {
+        return $transient;
+    }
+
+    $plugin_file = plugin_basename(__FILE__);
+    if (version_compare($manifest->version, QBUD_VERSION, '>')) {
+        $update = array(
+            'slug'        => 'qbud',
+            'plugin'      => $plugin_file,
+            'new_version' => $manifest->version,
+            'url'         => isset($manifest->homepage) ? $manifest->homepage : 'https://qbud.ai',
+            'package'     => $manifest->download_url,
+        );
+        if (!empty($manifest->requires)) {
+            $update['requires'] = $manifest->requires;
+        }
+        if (!empty($manifest->requires_php)) {
+            $update['requires_php'] = $manifest->requires_php;
+        }
+        if (!empty($manifest->tested)) {
+            $update['tested'] = $manifest->tested;
+        }
+        $transient->response[$plugin_file] = (object) $update;
+    } else {
+        // Record that no update is available so the "last checked" UI is correct.
+        $transient->no_update[$plugin_file] = (object) array(
+            'slug'        => 'qbud',
+            'plugin'      => $plugin_file,
+            'new_version' => QBUD_VERSION,
+            'url'         => 'https://qbud.ai',
+            'package'     => '',
+        );
+    }
+
+    return $transient;
+}
+add_filter('pre_set_site_transient_update_plugins', 'qbud_check_for_update');
+
+// Provide the "View details" / changelog popup for our plugin.
+function qbud_plugin_info($result, $action, $args) {
+    if ('plugin_information' !== $action || empty($args->slug) || 'qbud' !== $args->slug) {
+        return $result;
+    }
+
+    $manifest = qbud_get_remote_manifest();
+    if (!$manifest) {
+        return $result;
+    }
+
+    $info = array(
+        'name'          => 'qBud Assistant',
+        'slug'          => 'qbud',
+        'version'       => $manifest->version,
+        'author'        => '<a href="https://qbud.ai">qBud</a>',
+        'homepage'      => isset($manifest->homepage) ? $manifest->homepage : 'https://qbud.ai',
+        'download_link' => $manifest->download_url,
+        'requires'      => isset($manifest->requires) ? $manifest->requires : '',
+        'requires_php'  => isset($manifest->requires_php) ? $manifest->requires_php : '',
+        'tested'        => isset($manifest->tested) ? $manifest->tested : '',
+        'last_updated'  => isset($manifest->last_updated) ? $manifest->last_updated : '',
+        'sections'      => isset($manifest->sections) ? (array) $manifest->sections : array(),
+    );
+
+    return (object) $info;
+}
+add_filter('plugins_api', 'qbud_plugin_info', 10, 3);
+
+// Drop the cached manifest after an update so the next check is fresh.
+function qbud_clear_update_cache($upgrader, $hook_extra) {
+    if (isset($hook_extra['action'], $hook_extra['type'])
+        && 'update' === $hook_extra['action'] && 'plugin' === $hook_extra['type']) {
+        delete_transient('qbud_update_manifest');
+    }
+}
+add_action('upgrader_process_complete', 'qbud_clear_update_cache', 10, 2);
