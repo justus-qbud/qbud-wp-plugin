@@ -13,6 +13,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify versions are in sync
+        run: |
+          header=$(grep -oiP '^\s*\*\s*Version:\s*\K[0-9.]+' qbud.php | head -n1)
+          const=$(grep -oP "define\(\s*'QBUD_VERSION'\s*,\s*'\K[0-9.]+" qbud.php | head -n1)
+          manifest=$(jq -r '.version' qbud.json)
+          echo "Plugin header:   $header"
+          echo "QBUD_VERSION:    $const"
+          echo "qbud.json:       $manifest"
+          if [ -z "$header" ] || [ -z "$const" ] || [ -z "$manifest" ]; then
+            echo "Could not read one of the versions."
+            exit 1
+          fi
+          if [ "$header" != "$const" ] || [ "$header" != "$manifest" ]; then
+            echo "Version mismatch: header=$header QBUD_VERSION=$const qbud.json=$manifest"
+            exit 1
+          fi
+
       - name: Build plugin zip
         run: |
           mkdir -p dist build/qbud
