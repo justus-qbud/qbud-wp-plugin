@@ -1,0 +1,4 @@
+# Build artifacts
+*.zip
+/dist/
+/build/

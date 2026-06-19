@@ -41,7 +41,7 @@ jobs:
             --exclude='assets' \
             --exclude='dist' \
             --exclude='build' \
-            --exclude='qbud-wp.zip' \
+            --exclude='*.zip' \
             --exclude='qbud.json' \
             ./ build/qbud/
           (cd build && zip -r ../dist/qbud-wp.zip qbud)
