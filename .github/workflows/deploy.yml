@@ -37,7 +37,8 @@ jobs:
 
       - name: Copy zip to server
         run: |
-          scp ./dist/qbud.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ secrets.SSH_PATH }}"
+          scp ./dist/qbud.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}/qbud.zip
 
       - name: Purge Cloudflare cache for plugin zip
         run: |
